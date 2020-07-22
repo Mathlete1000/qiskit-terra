@@ -41,6 +41,55 @@ class CPMGPass(TransformationPass):
             DAGCircuit: A new DAG with CPMG DD Sequences inserted in large 
                         enough delays.
         """
+        t_c = 2000      # In units of dt
+        first = True
+        cpmg_durations = {}
+
+        u3_props = self.backend_properties._gates['u3']
+        for qubit, props in u3_props.items():
+            if 'gate_length' in props:
+                gate_length = props['gate_length'][0]
+                # TODO: Needs to check if total gate duration exceeds the input t_c
+                # If so, raise error
+                cpmg_durations[qubit[0]] = round(t_c - 2 * gate_length // self.dt)
+
         new_dag = DAGCircuit()
+
+        for qreg in dag.qregs.values():
+            new_dag.add_qreg(qreg)
+        for creg in dag.cregs.values():
+            new_dag.add_creg(creg)
+
+            
+        for node in dag.topological_op_nodes():
+
+            if isinstance(node.op, Delay):
+                delay_duration = dag.instruction_durations.get(node.op, node.qargs)
+                cpmg_duration = cpmg_durations[node.qargs[0].index]
+                print(cpmg_duration)
+
+                if t_c <= delay_duration:
+                    count = int(delay_duration // t_c)
+                    error = cpmg_duration - 2 * (cpmg_duration//4) - cpmg_duration // 2             # Leftover from modulo errors
+                    parity = 1 if (delay_duration - count * t_c + count * error) % 2 else 0
+                    new_delay = int((delay_duration - count * t_c + count * error) / 2)
+
+                    new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+
+                    for _ in range(count):
+                        new_dag.apply_operation_back(Delay(cpmg_duration // 4), qargs=node.qargs)
+                        new_dag.apply_operation_back(YGate(), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(cpmg_duration // 2), qargs=node.qargs)
+                        new_dag.apply_operation_back(YGate(), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(cpmg_duration // 4), qargs=node.qargs)
+
+                    new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+                    first = True
+
+                else:
+                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
+
+            else:
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
 
         return new_dag
