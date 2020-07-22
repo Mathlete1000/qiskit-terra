@@ -41,7 +41,7 @@ class CPMGPass(TransformationPass):
             DAGCircuit: A new DAG with CPMG DD Sequences inserted in large 
                         enough delays.
         """
-        t_c = 2000      # In units of dt
+        tau_c = 2000      # In units of dt
         first = True
         cpmg_durations = {}
 
@@ -51,7 +51,7 @@ class CPMGPass(TransformationPass):
                 gate_length = props['gate_length'][0]
                 # TODO: Needs to check if total gate duration exceeds the input t_c
                 # If so, raise error
-                cpmg_durations[qubit[0]] = round(t_c - 2 * gate_length // self.dt)
+                cpmg_durations[qubit[0]] = round(tau_c - 2 * gate_length // self.dt)
 
         new_dag = DAGCircuit()
 
@@ -68,11 +68,11 @@ class CPMGPass(TransformationPass):
                 cpmg_duration = cpmg_durations[node.qargs[0].index]
                 print(cpmg_duration)
 
-                if t_c <= delay_duration:
-                    count = int(delay_duration // t_c)
+                if tau_c <= delay_duration:
+                    count = int(delay_duration // tau_c)
                     error = cpmg_duration - 2 * (cpmg_duration//4) - cpmg_duration // 2             # Leftover from modulo errors
-                    parity = 1 if (delay_duration - count * t_c + count * error) % 2 else 0
-                    new_delay = int((delay_duration - count * t_c + count * error) / 2)
+                    parity = 1 if (delay_duration - count * tau_c + count * error) % 2 else 0
+                    new_delay = int((delay_duration - count * tau_c + count * error) / 2)
 
                     new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
 

@@ -99,6 +99,14 @@ Circuit Analysis
    NumTensorFactors
    DAGLongestPath
 
+Dynamical Decoupling
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CPMGPass
+
 Additional Passes
 =================
 
