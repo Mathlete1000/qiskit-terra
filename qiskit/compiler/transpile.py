@@ -52,6 +52,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
               translation_method: Optional[str] = None,
               scheduling_method: Optional[str] = None,
               instruction_durations: Optional[InstructionDurationsType] = None,
+              dynamical_decoupling: Optional[str] = None,
               seed_transpiler: Optional[int] = None,
               optimization_level: Optional[int] = None,
               pass_manager: Optional[PassManager] = None,
@@ -138,6 +139,11 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             E.g. [('cx', [0, 1], 1000), ('u3', [0], 300)]
             Durations defined in ``backend.properties`` are used as default and
             they are overwritten with the instruction_durations.
+        dynamical_decoupling: The name of the dynamical decoupling seqeuence to insert into times 
+            when the qubit(s) is/are idling for durations longer than the duration of the specified
+            DD seqeuence. The circuit will need to be converted to a schedule before DD sequences 
+            can be inserted. If no scheduling method is provided, 'alap' will be provided 
+            automatically as the scheduling method.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -232,8 +238,8 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                                            backend_properties, initial_layout,
                                            layout_method, routing_method, translation_method,
                                            scheduling_method, instruction_durations,
-                                           seed_transpiler, optimization_level,
-                                           callback, output_name)
+                                           dynamical_decoupling, seed_transpiler,
+                                           optimization_level, callback, output_name)
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
 
@@ -348,7 +354,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         pass_manager = level_2_pass_manager(pass_manager_config)
     elif level == 3:
         pass_manager = level_3_pass_manager(pass_manager_config)
-    else:
+    else: 
         raise TranspilerError("optimization_level can range from 0 to 3.")
 
     if ms_basis_swap is not None:
@@ -361,6 +367,24 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         from qiskit.transpiler.passes.scheduling import RemoveOpsOnIdleQubits
         pass_manager.append(RemoveOpsOnIdleQubits())
 
+    dynamical_decoupling = pass_manager_config.dynamical_decoupling
+    backend_properties = pass_manager_config.backend_properties
+    dt_in_sec = pass_manager_config.instruction_durations.schedule_dt
+
+    if dynamical_decoupling is not None:
+        if pass_manager_config.scheduling_method is None:
+            from qiskit.transpiler.passes import ALAPSchedule
+            pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
+        if dynamical_decoupling[:3] in {'udd', 'UDD'}:
+            try:
+                N = int(dynamical_decoupling[4:]) 
+                from qiskit.transpiler.passes import UDDPass
+                pass_manager.append(UDDPass(N, backend_properties, dt_in_sec))
+            except:
+                raise TranspilerError("UDD sequence must be in form of UDD_N, where N is an int.")
+        else:
+            raise TranspilerError("Invalid dynamical decoupling sequence %s." % dynamical_decoupling)
+
     return pass_manager.run(circuit, callback=transpile_config['callback'],
                             output_name=transpile_config['output_name'])
 
@@ -368,7 +392,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, layout_method, routing_method, translation_method,
-                          scheduling_method, instruction_durations,
+                          scheduling_method, instruction_durations, dynamical_decoupling,
                           seed_transpiler, optimization_level,
                           callback, output_name) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
@@ -402,6 +426,7 @@ def _parse_transpile_args(circuits, backend,
         durations = InstructionDurations.from_backend(backend).update(instruction_durations)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     durations = _parse_instruction_durations(durations, num_circuits)
+    dynamical_decoupling = _parse_dynamical_decoupling_method(dynamical_decoupling, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -410,7 +435,7 @@ def _parse_transpile_args(circuits, backend,
     list_transpile_args = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
                     layout_method, routing_method, translation_method, scheduling_method,
-                    durations, seed_transpiler, optimization_level,
+                    durations, dynamical_decoupling, seed_transpiler, optimization_level,
                     output_name, callback):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                    coupling_map=args[1],
@@ -421,10 +446,11 @@ def _parse_transpile_args(circuits, backend,
                                                                    translation_method=args[6],
                                                                    scheduling_method=args[7],
                                                                    instruction_durations=args[8],
-                                                                   seed_transpiler=args[9]),
-                          'optimization_level': args[10],
-                          'output_name': args[11],
-                          'callback': args[12]}
+                                                                   dynamical_decoupling=args[9],
+                                                                   seed_transpiler=args[10]),
+                          'optimization_level': args[11],
+                          'output_name': args[12],
+                          'callback': args[13]}
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -531,6 +557,12 @@ def _parse_instruction_durations(instruction_durations, num_circuits):
     if not isinstance(instruction_durations, list):
         instruction_durations = [instruction_durations] * num_circuits
     return instruction_durations
+
+
+def _parse_dynamical_decoupling_method(dynamical_decoupling, num_circuits):
+    if not isinstance(dynamical_decoupling, list):
+        dynamical_decoupling = [dynamical_decoupling] * num_circuits
+    return dynamical_decoupling
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
