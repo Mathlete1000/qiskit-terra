@@ -57,7 +57,7 @@ class UDDPass(TransformationPass):
         for qubit, props in u3_props.items():
             if 'gate_length' in props:
                 gate_length = props['gate_length'][0]
-                # TODO: Needs to check if total gate duration exceeds the input t_c
+                # TODO: Needs to check if total gate duration exceeds the input tau_c
                 # If so, raise error
                 udd_durations[qubit[0]] = self.tau_c - int(self.N * round(gate_length / self.dt))
 
