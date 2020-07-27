@@ -12,15 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""CPMG DD Pass"""
 from qiskit.circuit.library.standard_gates import XGate, YGate
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 
 class CPMGPass(TransformationPass):
+    """CPMG DD Pass"""
 
-    def __init__(self, backend_properties, dt_in_sec):
-        """XY4Pass initializer.
+    def __init__(self, backend_properties, dt_in_sec, tau_c=None):
+        """CPMGPass initializer.
         Args:
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
@@ -30,6 +32,7 @@ class CPMGPass(TransformationPass):
         super().__init__()
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
+        self.tau_c = 2000 if not tau_c else tau_c
 
     def run(self, dag):
         """Run the CPMG pass on `dag`.
@@ -41,9 +44,7 @@ class CPMGPass(TransformationPass):
             DAGCircuit: A new DAG with CPMG DD Sequences inserted in large 
                         enough delays.
         """
-        tau_c = 2000      # In units of dt
-        first = True
-        cpmg_durations = {}
+        tau_step_totals = {}
 
         u3_props = self.backend_properties._gates['u3']
         for qubit, props in u3_props.items():
@@ -51,7 +52,7 @@ class CPMGPass(TransformationPass):
                 gate_length = props['gate_length'][0]
                 # TODO: Needs to check if total gate duration exceeds the input t_c
                 # If so, raise error
-                cpmg_durations[qubit[0]] = round(tau_c - 2 * gate_length // self.dt)
+                tau_step_totals[qubit[0]] = round(self.tau_c - 2 * gate_length // self.dt)
 
         new_dag = DAGCircuit()
 
@@ -65,23 +66,23 @@ class CPMGPass(TransformationPass):
 
             if isinstance(node.op, Delay):
                 delay_duration = dag.instruction_durations.get(node.op, node.qargs)
-                cpmg_duration = cpmg_durations[node.qargs[0].index]
-                print(cpmg_duration)
+                tau_step_total = tau_step_totals[node.qargs[0].index]
+                print(tau_step_total)
 
-                if tau_c <= delay_duration:
-                    count = int(delay_duration // tau_c)
-                    error = cpmg_duration - 2 * (cpmg_duration//4) - cpmg_duration // 2             # Leftover from modulo errors
-                    parity = 1 if (delay_duration - count * tau_c + count * error) % 2 else 0
-                    new_delay = int((delay_duration - count * tau_c + count * error) / 2)
+                if self.tau_c <= delay_duration:
+                    count = delay_duration // self.tau_c
+                    remainder = tau_step_total - 2 * (tau_step_total // 4) - tau_step_total // 2
+                    parity = 1 if (delay_duration - count * (self.tau_c - remainder)) % 2 else 0
+                    new_delay = (delay_duration - count * (self.tau_c - remainder)) // 2
 
                     new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
 
                     for _ in range(count):
-                        new_dag.apply_operation_back(Delay(cpmg_duration // 4), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
                         new_dag.apply_operation_back(YGate(), qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(cpmg_duration // 2), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(tau_step_total // 2), qargs=node.qargs)
                         new_dag.apply_operation_back(YGate(), qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(cpmg_duration // 4), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
 
                     new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
                     first = True
