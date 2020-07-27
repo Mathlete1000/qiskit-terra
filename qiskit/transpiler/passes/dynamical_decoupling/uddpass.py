@@ -50,7 +50,7 @@ class UDDPass(TransformationPass):
             DAGCircuit: A new DAG with UDD Sequences inserted in large 
                         enough delays.
         """
-        udd_durations = {}
+        tau_step_totals = {}
         tau_steps_dict = {}
 
         u3_props = self.backend_properties._gates['u3']
@@ -59,9 +59,9 @@ class UDDPass(TransformationPass):
                 gate_length = props['gate_length'][0]
                 # TODO: Needs to check if total gate duration exceeds the input tau_c
                 # If so, raise error
-                udd_durations[qubit[0]] = self.tau_c - int(self.N * round(gate_length / self.dt))
+                tau_step_totals[qubit[0]] = self.tau_c - int(self.N * round(gate_length / self.dt))
 
-                t_i = [int(round(udd_durations[qubit[0]] * \
+                t_i = [int(round(tau_step_totals[qubit[0]] * \
                                 (sin(pi * i / (2 * (self.N + 1)))) ** 2)) \
                                 for i in range(self.N + 2)]
 
@@ -82,7 +82,7 @@ class UDDPass(TransformationPass):
 
             if isinstance(node.op, Delay):
                 delay_duration = node.op.duration
-                udd_duration = udd_durations[node.qargs[0].index]
+                udd_duration = tau_step_totals[node.qargs[0].index]
 
                 if self.tau_c <= delay_duration:
                     tau_steps = tau_steps_dict[node.qargs[0].index]
