@@ -80,7 +80,7 @@ class UDDPass(TransformationPass):
             
         for node in dag.topological_op_nodes():
 
-            if isinstance(node.op, Delay):
+            if isinstance(node.op, Delay) and len(dag.ancestors(node)) > 1:
                 delay_duration = node.op.duration
                 udd_duration = tau_step_totals[node.qargs[0].index]
 

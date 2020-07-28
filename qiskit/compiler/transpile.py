@@ -139,7 +139,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             E.g. [('cx', [0, 1], 1000), ('u3', [0], 300)]
             Durations defined in ``backend.properties`` are used as default and
             they are overwritten with the instruction_durations.
-        dynamical_decoupling: The name of the dynamical decoupling seqeuence to insert into times 
+        dynamical_decoupling: The name of the dynamical decoupling sequence to insert into times 
             when the qubit(s) is/are idling for durations longer than the duration of the specified
             DD sequence. The circuit will need to be converted to a scheduled circuit before DD 
             sequences can be inserted. If no scheduling method is provided, 'alap' will be provided 
