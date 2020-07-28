@@ -377,7 +377,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
             try:
                 N = int(dynamical_decoupling[4:])
                 if N < 1:
-                    raise TranspileError("CDD order must be at least 1.") 
+                    raise TranspilerError("CDD order must be at least 1.") 
                 from qiskit.transpiler.passes import CDDPass
                 backend_properties = pass_manager_config.backend_properties
                 dt_in_sec = pass_manager_config.instruction_durations.schedule_dt
