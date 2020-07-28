@@ -28,6 +28,7 @@ class CPMGPass(TransformationPass):
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
             dt_in_sec (float): Sample duration [sec] used for the conversion.
+            tau_c (int): Cycle time of the DD sequence. Default is 2000 dt.
         """
         super().__init__()
         self.backend_properties = backend_properties
@@ -65,11 +66,10 @@ class CPMGPass(TransformationPass):
         for node in dag.topological_op_nodes():
 
             if isinstance(node.op, Delay):
-                delay_duration = dag.instruction_durations.get(node.op, node.qargs)
+                delay_duration = node.op.duration
                 tau_step_total = tau_step_totals[node.qargs[0].index]
-                print(tau_step_total)
 
-                if self.tau_c <= delay_duration:
+                if self.tau_c <= delay_duration and len(dag.ancestors(node)) > 1:
                     count = delay_duration // self.tau_c
                     remainder = tau_step_total - 2 * (tau_step_total // 4) - tau_step_total // 2
                     parity = 1 if (delay_duration - count * (self.tau_c - remainder)) % 2 else 0
@@ -85,7 +85,6 @@ class CPMGPass(TransformationPass):
                         new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
 
                     new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
-                    first = True
 
                 else:
                     new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
