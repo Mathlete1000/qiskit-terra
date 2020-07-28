@@ -87,7 +87,7 @@ class CDDPass(TransformationPass):
 
         for node in dag.topological_op_nodes():
 
-            if isinstance(node.op, Delay):
+            if isinstance(node.op, Delay) and len(dag.ancestors(node)) > 1:
                 delay_duration = node.op.duration
                 self.tau_step_total = self.tau_step_totals[node.qargs[0].index]
                 tau_c = self.tau_cs[node.qargs[0].index] if self.tau_c is None else self.tau_c

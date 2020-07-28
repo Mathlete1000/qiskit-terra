@@ -139,7 +139,7 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             E.g. [('cx', [0, 1], 1000), ('u3', [0], 300)]
             Durations defined in ``backend.properties`` are used as default and
             they are overwritten with the instruction_durations.
-        dynamical_decoupling: The name of the dynamical decoupling seqeuence to insert into times 
+        dynamical_decoupling: The name of the dynamical decoupling sequence to insert into times 
             when the qubit(s) is/are idling for durations longer than the duration of the specified
             DD sequence. The circuit will need to be converted to a scheduled circuit before DD 
             sequences can be inserted. If no scheduling method is provided, 'alap' will be provided 
@@ -375,7 +375,9 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
             pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
         if dynamical_decoupling[:3] in {'cdd', 'CDD'}:
             try:
-                N = int(dynamical_decoupling[4:]) 
+                N = int(dynamical_decoupling[4:])
+                if N < 1:
+                    raise TranspileError("CDD order must be at least 1.") 
                 from qiskit.transpiler.passes import CDDPass
                 backend_properties = pass_manager_config.backend_properties
                 dt_in_sec = pass_manager_config.instruction_durations.schedule_dt
