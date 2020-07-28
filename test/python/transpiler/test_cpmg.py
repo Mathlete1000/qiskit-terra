@@ -21,31 +21,87 @@ from qiskit.transpiler.passes import CPMGPass
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
 
-from math import pi
-
-
 class TestCPMG(QiskitTestCase):
     """Test the CPMG DD pass."""
 
-    def test_cpmg(self):
+    def setUp(self):
+        self.backend = FakeAlmaden()
+        self.dt_in_sec = self.backend.configuration().dt
+        self.backend_prop = self.backend.properties()
+
+    def test_cpmg_simple(self):
         """Test the CPMG DD pass.
 
         It should replace large enough delay blocks with CPMG DD sequences.
         """
-        backend = FakeAlmaden()
-
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.delay(2500)
         circuit.h(0)
 
-        dt_in_sec = backend.configuration().dt
-        backend_prop = backend.properties()
         pass_manager = PassManager()
-        pass_manager.append(CPMGPass(backend_prop, dt_in_sec))
+        pass_manager.append(CPMGPass(self.backend_prop, self.dt_in_sec))
         actual = pass_manager.run(circuit)
         
         expected = QuantumCircuit(1)
+        expected.h(0)
+        expected.delay(250, 0)
+        expected.delay(340, 0)
+        expected.y(0)
+        expected.delay(680, 0)
+        expected.y(0)
+        expected.delay(340, 0)
+        expected.delay(250, 0)
+        expected.h(0)
+
+        self.assertEqual(actual, expected)
+
+    def test_cpmg_multiple(self):
+        """Test the CPMG DD pass.
+
+        It should replace very large enough delay blocks with multiple CPMG DD sequences.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.delay(7500)
+        circuit.h(0)
+
+        pass_manager = PassManager()
+        pass_manager.append(CPMGPass(self.backend_prop, self.dt_in_sec))
+        actual = pass_manager.run(circuit)
+        
+        expected = QuantumCircuit(1)
+        expected.h(0)
+        expected.delay(750, 0)
+        for _ in range(3):
+            expected.delay(340, 0)
+            expected.y(0)
+            expected.delay(680, 0)
+            expected.y(0)
+            expected.delay(340, 0)
+        expected.delay(750, 0)
+        expected.h(0)
+
+        self.assertEqual(actual, expected)
+
+    def test_cpmg_not_first(self):
+        """Test the CPMG DD pass.
+
+        It should replace large enough delay blocks with CPMG DD sequences
+        except for the first delay block.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.delay(2000)
+        circuit.h(0)
+        circuit.delay(2500)
+        circuit.h(0)
+
+        pass_manager = PassManager()
+        pass_manager.append(CPMGPass(self.backend_prop, self.dt_in_sec))
+        actual = pass_manager.run(circuit)
+        
+        expected = QuantumCircuit(1)
+        expected.delay(2000, 0)
         expected.h(0)
         expected.delay(250, 0)
         expected.delay(340, 0)
