@@ -375,8 +375,10 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
             pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
         if dynamical_decoupling[:3] in {'udd', 'UDD'}:
             try:
-                N = int(dynamical_decoupling[4:]) 
+                N = int(dynamical_decoupling[4:])
                 from qiskit.transpiler.passes import UDDPass
+                if N < 2:
+                    raise TranspilerError("UDD must have order of at least 2.")
                 backend_properties = pass_manager_config.backend_properties
                 dt_in_sec = pass_manager_config.instruction_durations.schedule_dt
                 pass_manager.append(UDDPass(N, backend_properties, dt_in_sec))

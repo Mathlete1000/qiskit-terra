@@ -21,10 +21,7 @@ from qiskit.transpiler.passes import UDDPass
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
 
-from math import pi
-
-
-class TestUDD_2(QiskitTestCase):
+class TestUDD(QiskitTestCase):
     """Test the UDD pass."""
 
     def setUp(self):
