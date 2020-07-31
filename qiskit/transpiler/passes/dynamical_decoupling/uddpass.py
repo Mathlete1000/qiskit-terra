@@ -63,7 +63,7 @@ class UDDPass(TransformationPass):
 
                 t_i = [int(round(tau_step_totals[qubit[0]] * \
                                 (sin(pi * i / (2 * (self.N + 1)))) ** 2)) \
-                                for i in range(self.N + 2)]
+                                            for i in range(self.N + 2)]
 
                 tau_steps_dict[qubit[0]] = [t_i[i] - t_i[i-1] for i in range(1, self.N + 2)]
                 # TODO: Maybe check if each tau step is 0, but makes error checking
@@ -73,6 +73,9 @@ class UDDPass(TransformationPass):
 
         new_dag = DAGCircuit()
 
+        new_dag.name = dag.name
+        new_dag.instruction_durations = dag.instruction_durations
+
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
         for creg in dag.cregs.values():
@@ -80,13 +83,20 @@ class UDDPass(TransformationPass):
             
         for node in dag.topological_op_nodes():
 
-            if isinstance(node.op, Delay) and len(dag.ancestors(node)) > 1:
+            if not isinstance(node.op, Delay):
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
+
+            else:
                 delay_duration = node.op.duration
                 udd_duration = tau_step_totals[node.qargs[0].index]
 
-                if self.tau_c <= delay_duration:
+                if self.tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
+                    # If a cycle of UDD can't fit or there isn't at least 1 other operation before.
+                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
+
+                else:
                     tau_steps = tau_steps_dict[node.qargs[0].index]
-                    count = int(delay_duration // self.tau_c)
+                    count = delay_duration // self.tau_c
                     remainder = udd_duration - sum(tau_steps)
                     parity = 1 if (delay_duration - count * self.tau_c + count * remainder) % 2 \
                                else 0
@@ -100,13 +110,6 @@ class UDDPass(TransformationPass):
                             new_dag.apply_operation_back(YGate(), qargs=node.qargs)
                             new_dag.apply_operation_back(Delay(tau_step), qargs=node.qargs)
 
-
                     new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
-
-                else:
-                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
-
-            else:
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
 
         return new_dag
