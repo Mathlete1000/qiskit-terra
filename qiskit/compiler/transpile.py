@@ -375,11 +375,12 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
             pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
         if dynamical_decoupling in {'cpmg', 'CPMG'}:
             from qiskit.transpiler.passes import CPMGPass
-            backend_properties = pass_manager_config.backend_properties
-            dt_in_sec = pass_manager_config.instruction_durations.schedule_dt
-            pass_manager.append(CPMGPass(backend_properties, dt_in_sec))
+            pass_manager.append(
+                CPMGPass(pass_manager_config.backend_properties,
+                                    pass_manager_config.instruction_durations.schedule_dt))
         else:
-            raise TranspilerError("Invalid dynamical decoupling sequence %s." % dynamical_decoupling)
+            raise TranspilerError("Invalid dynamical decoupling sequence %s."
+                                                                % dynamical_decoupling)
 
     return pass_manager.run(circuit, callback=transpile_config['callback'],
                             output_name=transpile_config['output_name'])

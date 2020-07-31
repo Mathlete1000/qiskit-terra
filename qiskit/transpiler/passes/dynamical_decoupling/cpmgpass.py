@@ -57,11 +57,13 @@ class CPMGPass(TransformationPass):
 
         new_dag = DAGCircuit()
 
+        new_dag.name = dag.name
+        new_dag.instruction_durations = dag.instruction_durations
+
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
-
             
         for node in dag.topological_op_nodes():
 
@@ -73,6 +75,7 @@ class CPMGPass(TransformationPass):
                 tau_step_total = tau_step_totals[node.qargs[0].index]
 
                 if self.tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
+                    #If a cycle of CPMG can't fit or there isn't at least 1 other operation before.
                     new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
 
                 else:
