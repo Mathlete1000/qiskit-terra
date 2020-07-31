@@ -65,11 +65,17 @@ class CPMGPass(TransformationPass):
             
         for node in dag.topological_op_nodes():
 
-            if isinstance(node.op, Delay):
+            if not isinstance(node.op, Delay):
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
+
+            else:
                 delay_duration = node.op.duration
                 tau_step_total = tau_step_totals[node.qargs[0].index]
 
-                if self.tau_c <= delay_duration and len(dag.ancestors(node)) > 1:
+                if self.tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
+                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
+
+                else:
                     count = delay_duration // self.tau_c
                     remainder = tau_step_total - 2 * (tau_step_total // 4) - tau_step_total // 2
                     parity = 1 if (delay_duration - count * (self.tau_c - remainder)) % 2 else 0
@@ -85,11 +91,5 @@ class CPMGPass(TransformationPass):
                         new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
 
                     new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
-
-                else:
-                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
-
-            else:
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
 
         return new_dag
