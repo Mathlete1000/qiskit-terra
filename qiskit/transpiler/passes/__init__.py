@@ -107,6 +107,14 @@ Synthesis
 
    UnitarySynthesis
 
+Dynamical Decoupling
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   NUDDPass
+
 Additional Passes
 =================
 
@@ -179,6 +187,9 @@ from .synthesis import UnitarySynthesis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import DelayInDt
+
+# dynamical decoupling
+from .dynamical_decoupling import NUDDPass
 
 # additional utility passes
 from .utils import CheckMap
