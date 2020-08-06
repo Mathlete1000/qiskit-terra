@@ -23,7 +23,7 @@ from math import sin, pi
 class NUDDPass(TransformationPass):
     """NUDD Pass"""
 
-    def __init__(self, backend_properties, dt_in_sec, tau_c=None):
+    def __init__(self, N, backend_properties, dt_in_sec, tau_c=None):
         """NUDDPass initializer.
         Args:
             N (int): Order of the NUDD sequence to implement.
@@ -35,7 +35,7 @@ class NUDDPass(TransformationPass):
                 not specified.
         """
         super().__init__()
-        # self.N = N
+        self.N = N
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
         self.tau_c = 2000 if not tau_c else tau_c

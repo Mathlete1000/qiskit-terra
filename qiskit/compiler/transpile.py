@@ -371,14 +371,20 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         if pass_manager_config.scheduling_method is None:
             from qiskit.transpiler.passes import ALAPSchedule
             pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
-        if dynamical_decoupling in {'nudd','NUDD'}:
-            from qiskit.transpiler.passes import NUDDPass
-            pass_manager.append(
-                NUDDPass(pass_manager_config.backend_properties,
+        if dynamical_decoupling[:4] in {'nudd', 'NUDD'}:
+            try:
+                N = int(dynamical_decoupling[5:])
+                from qiskit.transpiler.passes import NUDDPass
+                if N < 2:
+                    raise TranspilerError("NUDD must have order of at least 2.")
+                pass_manager.append(
+                        NUDDPass(N, pass_manager_config.backend_properties,
                                         pass_manager_config.instruction_durations.schedule_dt))
+            except:
+                raise TranspilerError("NUDD sequence must be in form of NUDD_N, where N is an int.")
         else:
             raise TranspilerError("Invalid dynamical decoupling sequence %s."
-                                                                        % dynamical_decoupling)
+                                                                % dynamical_decoupling)
 
     return pass_manager.run(circuit, callback=transpile_config['callback'],
                             output_name=transpile_config['output_name'])
