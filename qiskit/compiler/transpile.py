@@ -384,6 +384,18 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
                                         pass_manager_config.instruction_durations.schedule_dt))
             except:
                 raise TranspilerError("UDD sequence must be in form of UDD_N, where N is an int.")
+
+        elif dynamical_decoupling[:4] in {'nudd', 'NUDD'}:
+            try:
+                N = int(dynamical_decoupling[5:])
+                from qiskit.transpiler.passes import NUDDPass
+                if N < 2:
+                    raise TranspilerError("NUDD must have order of at least 2.")
+                pass_manager.append(
+                        NUDDPass(N, pass_manager_config.backend_properties,
+                                        pass_manager_config.instruction_durations.schedule_dt))
+            except:
+                raise TranspilerError("(N)UDD sequence must be in form of (N)UDD_N, where N is an int.")
         else:
             raise TranspilerError("Invalid dynamical decoupling sequence %s."
                                                                 % dynamical_decoupling)
