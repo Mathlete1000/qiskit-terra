@@ -17,6 +17,7 @@ from qiskit.circuit.library.standard_gates import YGate, CXGate
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 from math import sin, pi
 
@@ -61,6 +62,7 @@ class NUDDPass(TransformationPass):
                 # too frequently
 
         self.nudd = {}
+        self.doable = True
 
     def run(self, dag):
         """Run the NUDD pass on `dag`.
@@ -75,6 +77,8 @@ class NUDDPass(TransformationPass):
 
         def find_udd(qubit, duration):
             sequence = []
+            if duration - self.gate_length_totals[qubit] < 0:
+                self.doable = False
             tau_steps = [round((duration - self.gate_length_totals[qubit]) * elem) for elem in self.tau_steps_dict[qubit]]
             sequence.append(Delay(tau_steps[0]))
             for tau_step in tau_steps[1:]:
@@ -132,7 +136,7 @@ class NUDDPass(TransformationPass):
             if not isinstance(node.op, Delay) or len(dag.ancestors(node)) <= 1:
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs, node.condition)
 
-            elif isinstance(predecessors[-1].op, CXGate):
+            elif isinstance(predecessors[-1].op, CXGate) and self.doable:
 
                 for gate in self.nudd[node.qargs[0].index]:
                     new_dag.apply_operation_back(gate, qargs=node.qargs)
