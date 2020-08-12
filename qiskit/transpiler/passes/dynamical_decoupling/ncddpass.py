@@ -37,7 +37,6 @@ class NCDDPass(TransformationPass):
         self.N = N
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
-
         self.gate_length_totals = {}
 
         def build_sequence(N: int):
@@ -60,7 +59,6 @@ class NCDDPass(TransformationPass):
                 # If so, raise error
                 self.gate_length_totals[qubit[0]] = len(self.cdd_sequence) * round(gate_length / self.dt)
 
-        print(self.gate_length_totals)
         self.ncdd = {}
         self.doable = True
 
@@ -74,21 +72,18 @@ class NCDDPass(TransformationPass):
             DAGCircuit: A new DAG with NCDD Sequences inserted in large 
                         enough delays.
         """
-        def find_cdd(qubit, duration):
+        def find_cdd(qubit: int, duration: int):
             sequence = []
-            # print('qubit', qubit)
-            # print("diff", duration - self.gate_length_totals[qubit])
             if duration - self.gate_length_totals[qubit] < 0:
                 self.doable = False
             tau_step = (duration - self.gate_length_totals[qubit]) // len(self.cdd_sequence)
-            print('tau_step', tau_step)
             sequence.append(Delay(tau_step))
             for gate in self.cdd_sequence:
                 sequence.append(gate.definition.data[0][0])
                 sequence.append(Delay(tau_step))
             return sequence
 
-        def add_ncdd(qubits, duration):
+        def add_ncdd(qubits: List[int], duration: int):
             sequence = find_cdd(qubits[0], duration)
             for gate in sequence:
                 if qubits[0] in self.ncdd:
