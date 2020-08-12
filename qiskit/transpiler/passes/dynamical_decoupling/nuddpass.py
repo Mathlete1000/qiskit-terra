@@ -24,7 +24,7 @@ from math import sin, pi
 class NUDDPass(TransformationPass):
     """NUDD Pass"""
 
-    def __init__(self, N, backend_properties, dt_in_sec, tau_c=None):
+    def __init__(self, N, backend_properties, dt_in_sec):
         """NUDDPass initializer.
         Args:
             N (int): Order of the NUDD sequence to implement.
@@ -32,14 +32,11 @@ class NUDDPass(TransformationPass):
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
             dt_in_sec (float): Sample duration [sec] used for the conversion.
-            tau_c (int): Cycle time of the NUDD sequence. Default is 2000 dt if
-                not specified.
         """
         super().__init__()
         self.N = N
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
-        self.tau_c = 2000 if not tau_c else tau_c
 
         self.gate_length_totals = {}
         self.tau_steps_dict = {}
@@ -56,10 +53,6 @@ class NUDDPass(TransformationPass):
                                             for i in range(self.N + 2)]
 
                 self.tau_steps_dict[qubit[0]] = [t_i[i] - t_i[i-1] for i in range(1, self.N + 2)]
-                # TODO: Maybe check if each tau step is 0, but makes error checking
-                # complicated in case of overflow of sum
-                # TODO: Also maybe check if sum(tau_steps) > udd_duration due to rounding up
-                # too frequently
 
         self.nudd = {}
         self.doable = True
@@ -82,7 +75,7 @@ class NUDDPass(TransformationPass):
             tau_steps = [round((duration - self.gate_length_totals[qubit]) * elem) for elem in self.tau_steps_dict[qubit]]
             sequence.append(Delay(tau_steps[0]))
             for tau_step in tau_steps[1:]:
-                sequence.append(YGate(qubit).definition.data[0][0])
+                sequence.append(YGate().definition.data[0][0])
                 sequence.append(Delay(tau_step))
             return sequence
 
