@@ -17,3 +17,4 @@ technique that attempts to cancel out system-environment interations by
 sending a sequence of pulses."""
 
 from .cddpass import CDDPass
+from .ncddpass import NCDDPass

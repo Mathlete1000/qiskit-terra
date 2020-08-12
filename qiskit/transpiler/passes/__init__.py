@@ -171,6 +171,7 @@ from .scheduling import DelayInDt
 
 # dynamical decoupling
 from .dynamical_decoupling import CDDPass
+from .dynamical_decoupling import NCDDPass
 
 # additional utility passes
 from .utils import CheckMap

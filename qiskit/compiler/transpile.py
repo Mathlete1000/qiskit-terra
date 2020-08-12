@@ -373,17 +373,18 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
         if pass_manager_config.scheduling_method is None:
             from qiskit.transpiler.passes import ALAPSchedule
             pass_manager.append(ALAPSchedule(pass_manager_config.instruction_durations))
-        if dynamical_decoupling[:3] in {'cdd', 'CDD'}:
+        if dynamical_decoupling[:4] in {'ncdd', 'NCDD'}:
             try:
-                N = int(dynamical_decoupling[4:])
+                N = int(dynamical_decoupling[5:])
+                print(N)
                 if N < 1:
-                    raise TranspilerError("CDD order must be at least 1.") 
-                from qiskit.transpiler.passes import CDDPass
+                    raise TranspilerError("NCDD order must be at least 1.") 
+                from qiskit.transpiler.passes import NCDDPass
                 pass_manager.append(
-                    CDDPass(N, pass_manager_config.backend_properties,
+                    NCDDPass(N, pass_manager_config.backend_properties,
                                     pass_manager_config.instruction_durations.schedule_dt))
             except:
-                raise TranspilerError("CDD sequence must be in form of UDD_N, where N is an int.")
+                raise TranspilerError("NCDD sequence must be in form of NCDD_N, where N is an int.")
         else:
             raise TranspilerError("Invalid dynamical decoupling sequence %s." 
                                                                     % dynamical_decoupling)
