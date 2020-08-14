@@ -72,7 +72,7 @@ class NCDDPass(TransformationPass):
             DAGCircuit: A new DAG with NCDD Sequences inserted in large 
                         enough delays.
         """
-        def find_cdd(qubit: int, duration: int):
+        def find_cdd(qubit, duration):
             sequence = []
             if duration - self.gate_length_totals[qubit] < 0:
                 self.doable = False
@@ -83,7 +83,7 @@ class NCDDPass(TransformationPass):
                 sequence.append(Delay(tau_step))
             return sequence
 
-        def add_ncdd(qubits: List[int], duration: int):
+        def add_ncdd(qubits, duration):
             sequence = find_cdd(qubits[0], duration)
             for gate in sequence:
                 if qubits[0] in self.ncdd:
