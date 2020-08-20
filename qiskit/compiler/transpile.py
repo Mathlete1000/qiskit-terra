@@ -383,7 +383,7 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
                     CDDPass(N, pass_manager_config.backend_properties,
                                     pass_manager_config.instruction_durations.schedule_dt))
             except:
-                raise TranspilerError("CDD sequence must be in form of UDD_N, where N is an int.")
+                raise TranspilerError("CDD sequence must be in form of CDD_N, where N is an int.")
         else:
             raise TranspilerError("Invalid dynamical decoupling sequence %s." 
                                                                     % dynamical_decoupling)
