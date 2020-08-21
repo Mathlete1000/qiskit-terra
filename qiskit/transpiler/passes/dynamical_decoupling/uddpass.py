@@ -38,7 +38,7 @@ class UDDPass(TransformationPass):
         self.N = N
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
-        self.tau_c = 2000 if not tau_c else tau_c
+        self.tau_c = 10000 if not tau_c else tau_c
 
     def run(self, dag):
         """Run the UDD pass on `dag`.
@@ -107,7 +107,7 @@ class UDDPass(TransformationPass):
                     for _ in range(count):
                         new_dag.apply_operation_back(Delay(tau_steps[0]), qargs=node.qargs)
                         for tau_step in tau_steps[1:]:
-                            new_dag.apply_operation_back(YGate(), qargs=node.qargs)
+                            new_dag.apply_operation_back(YGate().definition.data[0][0], qargs=node.qargs)
                             new_dag.apply_operation_back(Delay(tau_step), qargs=node.qargs)
 
                     new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
