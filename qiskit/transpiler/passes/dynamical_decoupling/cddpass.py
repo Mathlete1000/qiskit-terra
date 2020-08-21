@@ -21,7 +21,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 class CDDPass(TransformationPass):
     """CDD Pass"""
 
-    def __init__(self, N, backend_properties, dt_in_sec, tau_step=10e-9):
+    def __init__(self, N, backend_properties, dt_in_sec, tau_c=None, tau_step=10):
         """CDDPass initializer.
         Args:
             N (int): Order of the CDD sequence to implement.
@@ -29,15 +29,21 @@ class CDDPass(TransformationPass):
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
             dt_in_sec (float): Sample duration [sec] used for the conversion.
+            tau_c (int): Cycle time of the DD sequence. Default is the sum of gate
+                durations of DD sequences with 10 ns delays in between.
             tau_step (float): Delay time between pulses in the DD sequence. Default
-                is 10 ns.
+                is 10 ns. tau_step calculates tau_c if tau_c is not specified.
         """
         super().__init__()
         self.N = N
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
-        self.tau_step_dt = int(tau_step / self.dt)
+        self.tau_step_dt = int(tau_step * 1e-9 / self.dt)
         self.approx_tau_cs = {}
+        self.tau_c = tau_c
+
+        if tau_c is not None and tau_step != 10:
+            raise TranspilerError("Only either tau_c or tau_step can be specified, not both.")
 
         def build_sequence(N: int):
             """
@@ -58,8 +64,8 @@ class CDDPass(TransformationPass):
                 # TODO: Needs to check if durations of gates exceed cycle time
                 # If so, raise error
                 if tau_c is not None:
-                    self.approx_tau_cs[qubit[0]] = len(self.cdd_sequence) * (gate_length / self.dt
-                                                        + self.tau_step_dt)
+                    self.approx_tau_cs[qubit[0]] = len(self.cdd_sequence) * tau_c \
+                                                    // len(self.cdd_sequence)
                 else:
                     self.approx_tau_cs[qubit[0]] = len(self.cdd_sequence) * \
                                         (round(self.tau_step_dt + gate_length / self.dt))
@@ -109,7 +115,7 @@ class CDDPass(TransformationPass):
                     for _ in range(count):
                         for gate in self.cdd_sequence:
                             new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
-                            new_dag.apply_operation_back(gate, qargs=node.qargs)
+                            new_dag.apply_operation_back(gate.definition.data[0][0], qargs=node.qargs)
 
                     new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
 
