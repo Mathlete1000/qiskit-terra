@@ -48,8 +48,8 @@ class PassManagerConfig:
             scheduling_method (str): the pass to use for scheduling instructions.
             instruction_durations (InstructionDurations): Dictionary of duration
                 (in dt) for each instruction.
-            dynamical_decoupling (str): the pass to use to implement a dynamical
-                decoupling sequences where possible.
+            dynamical_decoupling (str): the pass to use to implement dynamical
+                decoupling sequences where qubits are idling.
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.

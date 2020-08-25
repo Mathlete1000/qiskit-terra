@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,4 +16,4 @@
 technique that attempts to cancel out system-environment interations by
 sending a sequence of pulses."""
 
-from .cddpass import CDDPass
+from .cdd import CDDPass
