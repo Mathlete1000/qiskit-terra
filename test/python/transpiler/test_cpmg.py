@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests CPMG DD Pass"""
+"""Tests CPMG Dynamical Decoupling Pass"""
 
 from qiskit import QuantumCircuit
 from qiskit.transpiler import PassManager
@@ -30,9 +30,7 @@ class TestCPMG(QiskitTestCase):
         self.backend_prop = self.backend.properties()
 
     def test_cpmg_simple(self):
-        """Test the CPMG DD pass.
-
-        It should replace large enough delay blocks with CPMG DD sequences.
+        """Test that the pass replaces large enough delay blocks with CPMG DD sequences.
         """
         circuit = QuantumCircuit(1)
         circuit.h(0)
@@ -57,9 +55,7 @@ class TestCPMG(QiskitTestCase):
         self.assertEqual(actual, expected)
 
     def test_cpmg_multiple(self):
-        """Test the CPMG DD pass.
-
-        It should replace very large enough delay blocks with multiple CPMG DD sequences.
+        """Test that the pass replaces large enough delay blocks with multiple CPMG DD sequences.
         """
         circuit = QuantumCircuit(1)
         circuit.h(0)
@@ -85,10 +81,8 @@ class TestCPMG(QiskitTestCase):
         self.assertEqual(actual, expected)
 
     def test_cpmg_not_first(self):
-        """Test the CPMG DD pass.
-
-        It should replace large enough delay blocks with CPMG DD sequences
-        except for the first delay block.
+        """Test that the pass replaces large enough delay blocks with CPMG DD sequences except 
+        for the first delay block.
         """
         circuit = QuantumCircuit(1)
         circuit.delay(2000)

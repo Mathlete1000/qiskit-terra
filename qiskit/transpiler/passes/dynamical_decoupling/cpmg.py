@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,14 +12,28 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""CPMG DD Pass"""
+"""CPMG (Carr–Purcell–Meiboom–Gill) is a DD sequence that consist of pulses 
+   rotating around a single axis. In this case, we will consider the y-axis 
+   such that we will be using Y gates in the sequence. 
+   The sequence is comprised of a quarter of the cycle time of free evolution 
+   followed by a Y gate pulse, followed with half of the cycle time of free 
+   evolution, followed with a second Y gate pulse, and ending with a quarter 
+   of cycle time of free evolution. This DD sequence is useful for when the 
+   coupling term between the system and the environment contains components 
+   orthogonal to the axis of rotation.
+"""
+
 from qiskit.circuit.library.standard_gates import XGate, YGate
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.basis.unroller import Unroller
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 
 class CPMGPass(TransformationPass):
-    """CPMG DD Pass"""
+    """The pass that when called upon, will insert CPMG sequences into a 
+    scheduled circuit where large enough Delay operations originally exist.
+    """
 
     def __init__(self, backend_properties, dt_in_sec, tau_c=None):
         """CPMGPass initializer.
@@ -42,18 +56,29 @@ class CPMGPass(TransformationPass):
             dag (DAGCircuit): DAG to new DAG.
 
         Returns:
-            DAGCircuit: A new DAG with CPMG DD Sequences inserted in large 
-                        enough delays.
+            DAGCircuit: A new DAG with CPMG DD Sequences inserted in large enough delays.
         """
         tau_step_totals = {}
 
-        u3_props = self.backend_properties._gates['u3']
-        for qubit, props in u3_props.items():
-            if 'gate_length' in props:
-                gate_length = props['gate_length'][0]
-                # TODO: Needs to check if total gate duration exceeds the input t_c
-                # If so, raise error
-                tau_step_totals[qubit[0]] = round(self.tau_c - 2 * gate_length // self.dt)
+        basis = self.backend_properties._gates.keys()
+        qubits = len(self.backend_properties.qubits)
+
+        for qubit in range(qubits):
+            gate_duration = 0
+
+            ygate_dag = DAGCircuit()
+            ygate_qreg = QuantumRegister(qubits, 'q')
+            ygate_dag.add_qreg(ygate_qreg)
+            ygate_qubit = Qubit(ygate_qreg, qubit)
+            ygate_dag.apply_operation_back(YGate(), [ygate_qubit])
+
+            ygate_unroll = Unroller(basis).run(ygate_dag)
+
+            for node in ygate_unroll.topological_op_nodes():
+                gate_duration += \
+                        self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
+
+            tau_step_totals[qubit] = round(self.tau_c - 2 * gate_duration // self.dt)
 
         new_dag = DAGCircuit()
 
@@ -88,9 +113,11 @@ class CPMGPass(TransformationPass):
 
                     for _ in range(count):
                         new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
-                        new_dag.apply_operation_back(YGate().definition.data[0][0], qargs=node.qargs)
+                        for basis_node in self.ygate_unroll.topological_op_nodes():
+                            new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                         new_dag.apply_operation_back(Delay(tau_step_total // 2), qargs=node.qargs)
-                        new_dag.apply_operation_back(YGate().definition.data[0][0], qargs=node.qargs)
+                        for basis_node in self.ygate_unroll.topological_op_nodes():
+                            new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                         new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
 
                     new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
