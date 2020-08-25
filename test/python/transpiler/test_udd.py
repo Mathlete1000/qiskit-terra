@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests UDD Pass"""
+"""Tests Uhrig Dynamical Decoupling (UDD) Pass"""
 
 from qiskit import QuantumCircuit
 from qiskit.transpiler import PassManager
@@ -30,9 +30,7 @@ class TestUDD(QiskitTestCase):
         self.backend_prop = self.backend.properties()
 
     def test_udd_2(self):
-        """Test the UDD_2 pass.
-
-        It should replace large enough delay blocks with UDD_2 sequences.
+        """Test that the pass replaces large enough delay blocks with UDD_2 sequences.
         """
         circuit = QuantumCircuit(1)
         circuit.h(0)
@@ -57,10 +55,7 @@ class TestUDD(QiskitTestCase):
         self.assertEqual(actual, expected)
 
     def test_udd_3(self):
-        """Test the UDD_3 pass.
-
-        It should replace large enough delay blocks with UDD_3 sequences 
-        except for the first delay block.
+        """Test that the pass replaces large enough delay blocks with UDD_3 sequences.
         """
         circuit = QuantumCircuit(1)
         circuit.delay(2000, 0)
@@ -89,9 +84,7 @@ class TestUDD(QiskitTestCase):
         self.assertEqual(actual, expected)
 
     def test_udd_4(self):
-        """Test the UDD_4 pass.
-
-        It should replace large enough delay blocks with UDD_4 sequences.
+        """Test that the pass replaces large enough delay blocks with UDD_4 sequences.
         """
         circuit = QuantumCircuit(1)
         circuit.h(0)
