@@ -113,10 +113,10 @@ class CPMGPass(TransformationPass):
 
                     for _ in range(count):
                         new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
-                        for basis_node in self.ygate_unroll.topological_op_nodes():
+                        for basis_node in ygate_unroll.topological_op_nodes():
                             new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                         new_dag.apply_operation_back(Delay(tau_step_total // 2), qargs=node.qargs)
-                        for basis_node in self.ygate_unroll.topological_op_nodes():
+                        for basis_node in ygate_unroll.topological_op_nodes():
                             new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                         new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
 
