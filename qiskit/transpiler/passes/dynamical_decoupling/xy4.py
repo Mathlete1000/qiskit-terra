@@ -33,7 +33,7 @@ class XY4Pass(TransformationPass):
     scheduled circuit where large enough Delay operations originally exist.
     """
 
-    def __init__(self, backend_properties, dt_in_sec, tau_step=10e-9):
+    def __init__(self, backend_properties, tau_step=10e-9):
         """XY4Pass initializer.
 
         Args:
@@ -46,8 +46,7 @@ class XY4Pass(TransformationPass):
         """
         super().__init__()
         self.backend_properties = backend_properties
-        self.dt = dt_in_sec
-        self.tau_step_dt = int(tau_step / self.dt)
+        self.tau_step_dt = tau_step
         self.tau_cs = {}
 
         basis = backend_properties._gates.keys()
@@ -80,7 +79,7 @@ class XY4Pass(TransformationPass):
                 gate_duration += \
                     self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
 
-            self.tau_cs[qubit] = 4 * self.tau_step_dt + 2 * round(gate_duration / self.dt)
+            self.tau_cs[qubit] = 4 * self.tau_step_dt + 2 * gate_duration
 
 
     def run(self, dag):
@@ -95,7 +94,6 @@ class XY4Pass(TransformationPass):
         new_dag = DAGCircuit()
 
         new_dag.name = dag.name
-        new_dag.instruction_durations = dag.instruction_durations
 
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
@@ -113,33 +111,33 @@ class XY4Pass(TransformationPass):
 
             if tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
                 # If a cycle of XY4 can't fit or there isn't at least 1 other operation before.
-                new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
+                new_dag.apply_operation_back(Delay(delay_duration, unit='s'), qargs=node.qargs)
                 continue
 
             count = int(delay_duration // tau_c)
-            new_delay = int((delay_duration - count * tau_c + self.tau_step_dt) / 2)
+            new_delay = (delay_duration - count * tau_c + self.tau_step_dt) / 2
 
-            new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+            new_dag.apply_operation_back(Delay(new_delay, unit='s'), qargs=node.qargs)
 
             first = True
 
             for _ in range(count):
                 if not first:
-                    new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                    new_dag.apply_operation_back(Delay(self.tau_step_dt, unit='s'), 
+                                                       qargs=node.qargs)
                 for basis_node in self.xgate_unroll.topological_op_nodes():
                     new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
-                new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                new_dag.apply_operation_back(Delay(self.tau_step_dt, unit='s'), qargs=node.qargs)
                 for basis_node in self.ygate_unroll.topological_op_nodes():
                     new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
-                new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                new_dag.apply_operation_back(Delay(self.tau_step_dt, unit='s'), qargs=node.qargs)
                 for basis_node in self.xgate_unroll.topological_op_nodes():
                     new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
-                new_dag.apply_operation_back(Delay(self.tau_step_dt), qargs=node.qargs)
+                new_dag.apply_operation_back(Delay(self.tau_step_dt, unit='s'), qargs=node.qargs)
                 for basis_node in self.ygate_unroll.topological_op_nodes():
                     new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                 first = False
 
-            parity = 1 if (delay_duration - count * tau_c + self.tau_step_dt) % 2 else 0
-            new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+            new_dag.apply_operation_back(Delay(new_delay, unit='s'), qargs=node.qargs)
 
         return new_dag

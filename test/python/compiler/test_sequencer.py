@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -47,6 +45,17 @@ class TestSequence(QiskitTestCase):
         qc = QuantumCircuit(2, name="bell_without_measurement")
         qc.h(0)
         qc.cx(0, 1)
+        sc = transpile(qc, self.backend, scheduling_method='alap')
+        actual = sequence(sc, self.backend)
+        expected = schedule(qc.decompose(), self.backend)
+        self.assertEqual(actual, pad(expected))
+
+    def test_transpile_and_sequence_agree_with_schedule_for_circuit_with_delay(self):
+        qc = QuantumCircuit(1, 1, name="t2")
+        qc.h(0)
+        qc.delay(500, 0, unit='ns')
+        qc.h(0)
+        qc.measure(0, 0)
         sc = transpile(qc, self.backend, scheduling_method='alap')
         actual = sequence(sc, self.backend)
         expected = schedule(qc.decompose(), self.backend)
