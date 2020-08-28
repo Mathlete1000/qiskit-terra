@@ -35,7 +35,7 @@ class CPMGPass(TransformationPass):
     scheduled circuit where large enough Delay operations originally exist.
     """
 
-    def __init__(self, backend_properties, dt_in_sec, tau_c=None):
+    def __init__(self, backend_properties, dt_in_sec, tau_c=2000):
         """CPMGPass initializer.
         Args:
             backend_properties (BackendProperties): Properties returned by a
@@ -47,7 +47,7 @@ class CPMGPass(TransformationPass):
         super().__init__()
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
-        self.tau_c = 2000 if not tau_c else tau_c
+        self.tau_c = tau_c
 
     def run(self, dag):
         """Run the CPMG pass on `dag`.
@@ -109,7 +109,8 @@ class CPMGPass(TransformationPass):
                     parity = 1 if (delay_duration - count * (self.tau_c - remainder)) % 2 else 0
                     new_delay = (delay_duration - count * (self.tau_c - remainder)) // 2
 
-                    new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+                    if new_delay != 0:
+                        new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
 
                     for _ in range(count):
                         new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
@@ -120,6 +121,7 @@ class CPMGPass(TransformationPass):
                             new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                         new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
 
-                    new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+                    if new_delay != 0 or parity != 0:
+                        new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
 
         return new_dag

@@ -20,6 +20,7 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passes import CPMGPass
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
+from numpy import pi
 
 class TestCPMG(QiskitTestCase):
     """Test the CPMG DD pass."""
@@ -45,9 +46,9 @@ class TestCPMG(QiskitTestCase):
         expected.h(0)
         expected.delay(250, 0)
         expected.delay(340, 0)
-        expected.y(0)
+        expected.u3(pi, pi/2, pi/2, 0)
         expected.delay(680, 0)
-        expected.y(0)
+        expected.u3(pi, pi/2, pi/2, 0)
         expected.delay(340, 0)
         expected.delay(250, 0)
         expected.h(0)
@@ -71,9 +72,9 @@ class TestCPMG(QiskitTestCase):
         expected.delay(750, 0)
         for _ in range(3):
             expected.delay(340, 0)
-            expected.y(0)
+            expected.u3(pi, pi/2, pi/2, 0)
             expected.delay(680, 0)
-            expected.y(0)
+            expected.u3(pi, pi/2, pi/2, 0)
             expected.delay(340, 0)
         expected.delay(750, 0)
         expected.h(0)
@@ -99,9 +100,9 @@ class TestCPMG(QiskitTestCase):
         expected.h(0)
         expected.delay(250, 0)
         expected.delay(340, 0)
-        expected.y(0)
+        expected.u3(pi, pi/2, pi/2, 0)
         expected.delay(680, 0)
-        expected.y(0)
+        expected.u3(pi, pi/2, pi/2, 0)
         expected.delay(340, 0)
         expected.delay(250, 0)
         expected.h(0)
