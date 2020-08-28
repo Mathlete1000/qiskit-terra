@@ -20,6 +20,7 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passes import UDDPass
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
+from numpy import pi
 
 class TestUDD(QiskitTestCase):
     """Test the UDD pass."""
@@ -45,9 +46,9 @@ class TestUDD(QiskitTestCase):
         expected.h(0)
         expected.delay(250, 0)
         expected.delay(340, 0)
-        expected.y(0)
+        expected.u3(pi, pi/2, pi/2, 0)
         expected.delay(680, 0)
-        expected.y(0)
+        expected.u3(pi, pi/2, pi/2, 0)
         expected.delay(340, 0)
         expected.delay(250, 0)
         expected.h(0)
@@ -60,7 +61,7 @@ class TestUDD(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.delay(2000, 0)
         circuit.h(0)
-        circuit.delay(2500, 0)
+        circuit.delay(3500, 0)
         circuit.h(0)
 
         pass_manager = PassManager()
@@ -71,13 +72,13 @@ class TestUDD(QiskitTestCase):
         expected.delay(2000, 0)
         expected.h(0)
         expected.delay(250, 0)
-        expected.delay(152, 0)
-        expected.y(0)
-        expected.delay(368, 0)
-        expected.y(0)
-        expected.delay(368, 0)
-        expected.y(0)
-        expected.delay(152, 0)
+        expected.delay(299, 0)
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(721, 0)
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(721, 0)
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(299, 0)
         expected.delay(250, 0)
         expected.h(0)
 
@@ -90,7 +91,7 @@ class TestUDD(QiskitTestCase):
         circuit.h(0)
         circuit.delay(100, 0)
         circuit.x(0)
-        circuit.delay(2500, 0)
+        circuit.delay(4500, 0)
         circuit.h(0)
 
         pass_manager = PassManager()
@@ -102,15 +103,15 @@ class TestUDD(QiskitTestCase):
         expected.delay(100, 0)
         expected.x(0)
         expected.delay(250, 0)
-        expected.delay(69, 0)
-        expected.y(0)
-        expected.delay(180, 0)
-        expected.y(0)
-        expected.delay(222, 0)
-        expected.y(0)
-        expected.delay(180, 0)
-        expected.y(0)
-        expected.delay(69, 0)
+        expected.delay(260, 0)
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(680, 0)
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(840, 0)
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(680, 0)
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(260, 0)
         expected.delay(250, 0)
         expected.h(0)
 

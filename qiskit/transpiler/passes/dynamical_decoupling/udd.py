@@ -42,14 +42,14 @@ class UDDPass(TransformationPass):
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
             dt_in_sec (float): Sample duration [sec] used for the conversion.
-            tau_c (int): Cycle time of the UDD sequence. Default is 10000 dt if
-                not specified.
+            tau_c (int): Cycle time of the UDD sequence. Default is 1000 * N dt 
+                if not specified, where N is the order specified.
         """
         super().__init__()
         self.N = N
         self.backend_properties = backend_properties
         self.dt = dt_in_sec
-        self.tau_c = 10000 if not tau_c else tau_c
+        self.tau_c = 1000 * self.N if not tau_c else tau_c
 
     def run(self, dag):
         """Run the UDD pass on `dag`.
@@ -81,7 +81,7 @@ class UDDPass(TransformationPass):
                 gate_duration += \
                         self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
 
-            tau_step_totals[qubit] = round(self.tau_c - 2 * gate_duration // self.dt)
+            tau_step_totals[qubit] = round(self.tau_c - self.N * gate_duration // self.dt)
 
             t_i = [int(round(tau_step_totals[qubit] * \
                             (sin(pi * i / (2 * (self.N + 1)))) ** 2)) \
@@ -125,7 +125,8 @@ class UDDPass(TransformationPass):
                                else 0
                     new_delay = int((delay_duration - count * self.tau_c + count * remainder) / 2)
 
-                    new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+                    if new_delay != 0:
+                        new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
 
                     for _ in range(count):
                         new_dag.apply_operation_back(Delay(tau_steps[0]), qargs=node.qargs)
@@ -134,6 +135,7 @@ class UDDPass(TransformationPass):
                                 new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
                             new_dag.apply_operation_back(Delay(tau_step), qargs=node.qargs)
 
-                    new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+                    if new_delay != 0 or parity != 0:
+                        new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
 
         return new_dag
