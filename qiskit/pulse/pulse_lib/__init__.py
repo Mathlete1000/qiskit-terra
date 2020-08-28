@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -14,10 +12,10 @@
 
 """This library provides Pulse users with convenient methods to build Pulse waveforms.
 
-Arbitrary waveforms can be described with :py:class:`~qiskit.pulse.pulse_lib.SamplePulse` s.
+Arbitrary waveforms can be described with :py:class:`~qiskit.pulse.pulse_lib.Waveform` s.
 
 The :py:mod:`~qiskit.pulse.pulse_lib.discrete` module will generate
-:py:class:`~qiskit.pulse.pulse_lib.SamplePulse` s for common waveform envelopes.
+:py:class:`~qiskit.pulse.pulse_lib.Waveform` s for common waveform envelopes.
 
 The parametric pulses, :py:class:`~qiskit.pulse.pulse_lib.Gaussian`,
 :py:class:`~qiskit.pulse.pulse_lib.GaussianSquare`, :py:class:`~qiskit.pulse.pulse_lib.Drag` and
@@ -28,7 +26,7 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
    :toctree: ../stubs/
 
    ~qiskit.pulse.pulse_lib.discrete
-   SamplePulse
+   Waveform
    Constant
    Drag
    Gaussian

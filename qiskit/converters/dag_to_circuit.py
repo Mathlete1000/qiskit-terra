@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -48,7 +46,8 @@ def dag_to_circuit(dag):
     """
 
     name = dag.name or None
-    circuit = QuantumCircuit(*dag.qregs.values(), *dag.cregs.values(), name=name)
+    circuit = QuantumCircuit(*dag.qregs.values(), *dag.cregs.values(), name=name,
+                             global_phase=dag.global_phase)
 
     for node in dag.topological_op_nodes():
         # Get arguments for classical control (if any)
@@ -57,5 +56,4 @@ def dag_to_circuit(dag):
         circuit._append(inst, node.qargs, node.cargs)
 
     circuit.duration = dag.duration
-    circuit.instruction_durations = dag.instruction_durations
     return circuit

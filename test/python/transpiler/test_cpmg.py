@@ -20,36 +20,36 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passes import CPMGPass
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeAlmaden
+from numpy import pi
 
 class TestCPMG(QiskitTestCase):
     """Test the CPMG DD pass."""
 
     def setUp(self):
         self.backend = FakeAlmaden()
-        self.dt_in_sec = self.backend.configuration().dt
         self.backend_prop = self.backend.properties()
+        self.gate_length = self.backend_prop._gates['u3'][(0,)]['gate_length'][0]
+        self.tau_step = 4.5e-7 - 2 * self.gate_length
 
     def test_cpmg_simple(self):
         """Test that the pass replaces large enough delay blocks with CPMG DD sequences.
         """
         circuit = QuantumCircuit(1)
         circuit.h(0)
-        circuit.delay(2500)
+        circuit.delay(4.5e-7, unit='s')
         circuit.h(0)
 
         pass_manager = PassManager()
-        pass_manager.append(CPMGPass(self.backend_prop, self.dt_in_sec))
+        pass_manager.append(CPMGPass(self.backend_prop))
         actual = pass_manager.run(circuit)
         
         expected = QuantumCircuit(1)
         expected.h(0)
-        expected.delay(250, 0)
-        expected.delay(340, 0)
-        expected.y(0)
-        expected.delay(680, 0)
-        expected.y(0)
-        expected.delay(340, 0)
-        expected.delay(250, 0)
+        expected.delay(self.tau_step / 4, 0, unit='s')
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(self.tau_step / 2, 0, unit='s')
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(self.tau_step / 4, 0, unit='s')
         expected.h(0)
 
         self.assertEqual(actual, expected)
@@ -59,23 +59,25 @@ class TestCPMG(QiskitTestCase):
         """
         circuit = QuantumCircuit(1)
         circuit.h(0)
-        circuit.delay(7500)
+        circuit.delay(15e-7, unit='s')
         circuit.h(0)
 
         pass_manager = PassManager()
-        pass_manager.append(CPMGPass(self.backend_prop, self.dt_in_sec))
+        pass_manager.append(CPMGPass(self.backend_prop))
         actual = pass_manager.run(circuit)
         
+        leftover_delay = (15e-7 - 3 * 4.5e-7) / 2
+
         expected = QuantumCircuit(1)
         expected.h(0)
-        expected.delay(750, 0)
+        expected.delay(leftover_delay, 0, unit='s')
         for _ in range(3):
-            expected.delay(340, 0)
-            expected.y(0)
-            expected.delay(680, 0)
-            expected.y(0)
-            expected.delay(340, 0)
-        expected.delay(750, 0)
+            expected.delay(self.tau_step / 4, 0, unit='s')
+            expected.u3(pi, pi/2, pi/2, 0)
+            expected.delay(self.tau_step / 2, 0, unit='s')
+            expected.u3(pi, pi/2, pi/2, 0)
+            expected.delay(self.tau_step / 4, 0, unit='s')
+        expected.delay(leftover_delay, 0, unit='s')
         expected.h(0)
 
         self.assertEqual(actual, expected)
@@ -85,25 +87,23 @@ class TestCPMG(QiskitTestCase):
         for the first delay block.
         """
         circuit = QuantumCircuit(1)
-        circuit.delay(2000)
+        circuit.delay(5e-7, unit='s')
         circuit.h(0)
-        circuit.delay(2500)
+        circuit.delay(4.5e-7, unit='s')
         circuit.h(0)
 
         pass_manager = PassManager()
-        pass_manager.append(CPMGPass(self.backend_prop, self.dt_in_sec))
+        pass_manager.append(CPMGPass(self.backend_prop))
         actual = pass_manager.run(circuit)
         
         expected = QuantumCircuit(1)
-        expected.delay(2000, 0)
+        expected.delay(5e-7, unit='s')
         expected.h(0)
-        expected.delay(250, 0)
-        expected.delay(340, 0)
-        expected.y(0)
-        expected.delay(680, 0)
-        expected.y(0)
-        expected.delay(340, 0)
-        expected.delay(250, 0)
+        expected.delay(self.tau_step / 4, 0, unit='s')
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(self.tau_step / 2, 0, unit='s')
+        expected.u3(pi, pi/2, pi/2, 0)
+        expected.delay(self.tau_step / 4, 0, unit='s')
         expected.h(0)
 
         self.assertEqual(actual, expected)

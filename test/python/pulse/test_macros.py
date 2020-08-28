@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2019.
@@ -30,8 +28,8 @@ from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase
 
 
-class TestMacros(QiskitTestCase):
-    """Pulse Macro tests."""
+class TestMeasure(QiskitTestCase):
+    """Pulse measure macro."""
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
@@ -99,6 +97,14 @@ class TestMacros(QiskitTestCase):
         with self.assertRaises(PulseError):
             macros.measure(qubits=[0],
                            inst_map=self.inst_map)
+
+
+class TestMeasureAll(QiskitTestCase):
+    """Pulse measure all macro."""
+
+    def setUp(self):
+        self.backend = FakeOpenPulse2Q()
+        self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_measure_all(self):
         """Test measure_all function."""

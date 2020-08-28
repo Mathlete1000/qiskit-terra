@@ -35,19 +35,17 @@ class CPMGPass(TransformationPass):
     scheduled circuit where large enough Delay operations originally exist.
     """
 
-    def __init__(self, backend_properties, dt_in_sec, tau_c=None):
+    def __init__(self, backend_properties, tau_c=4.5e-7):
         """CPMGPass initializer.
         Args:
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
-            dt_in_sec (float): Sample duration [sec] used for the conversion.
-            tau_c (int): Cycle time of the DD sequence. Default is 2000 dt.
+            tau_c (float): Cycle time of the DD sequence in seconds. Default is 450 ns.
         """
         super().__init__()
         self.backend_properties = backend_properties
-        self.dt = dt_in_sec
-        self.tau_c = 2000 if not tau_c else tau_c
+        self.tau_c = tau_c
 
     def run(self, dag):
         """Run the CPMG pass on `dag`.
@@ -78,12 +76,11 @@ class CPMGPass(TransformationPass):
                 gate_duration += \
                         self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
 
-            tau_step_totals[qubit] = round(self.tau_c - 2 * gate_duration // self.dt)
+            tau_step_totals[qubit] = self.tau_c - 2 * gate_duration
 
         new_dag = DAGCircuit()
 
         new_dag.name = dag.name
-        new_dag.instruction_durations = dag.instruction_durations
 
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
@@ -104,22 +101,28 @@ class CPMGPass(TransformationPass):
                     new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
 
                 else:
-                    count = delay_duration // self.tau_c
-                    remainder = tau_step_total - 2 * (tau_step_total // 4) - tau_step_total // 2
-                    parity = 1 if (delay_duration - count * (self.tau_c - remainder)) % 2 else 0
-                    new_delay = (delay_duration - count * (self.tau_c - remainder)) // 2
+                    count = int(delay_duration // self.tau_c)
+                    new_delay = (delay_duration - count * self.tau_c) / 2
 
-                    new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+                    if new_delay != 0:
+                        new_dag.apply_operation_back(Delay(new_delay, unit='s'), qargs=node.qargs)
 
                     for _ in range(count):
-                        new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
-                        for basis_node in ygate_unroll.topological_op_nodes():
-                            new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(tau_step_total // 2), qargs=node.qargs)
-                        for basis_node in ygate_unroll.topological_op_nodes():
-                            new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
-                        new_dag.apply_operation_back(Delay(tau_step_total // 4), qargs=node.qargs)
+                        new_dag.apply_operation_back(Delay(tau_step_total / 4, unit='s'),
+                                                           qargs=node.qargs)
 
-                    new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+                        for basis_node in ygate_unroll.topological_op_nodes():
+                            new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
+
+                        new_dag.apply_operation_back(Delay(tau_step_total / 2, unit='s'),
+                                                           qargs=node.qargs)
+
+                        for basis_node in ygate_unroll.topological_op_nodes():
+                            new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
+
+                        new_dag.apply_operation_back(Delay(tau_step_total / 4, unit='s'),
+                                                           qargs=node.qargs)
+                    if new_delay != 0:
+                        new_dag.apply_operation_back(Delay(new_delay, unit='s'), qargs=node.qargs)
 
         return new_dag
