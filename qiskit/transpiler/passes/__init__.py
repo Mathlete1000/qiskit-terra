@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -83,7 +81,6 @@ Scheduling
 
    ALAPSchedule
    ASAPSchedule
-   DelayInDt
 
 Circuit Analysis
 ================
@@ -98,6 +95,21 @@ Circuit Analysis
    CountOpsLongestPath
    NumTensorFactors
    DAGLongestPath
+
+Dynamical Decoupling
+====================
+.. autosummary::
+   :toctree: ../stubs/
+
+   UDDPass
+
+Synthesis
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UnitarySynthesis
 
 Additional Passes
 =================
@@ -164,10 +176,12 @@ from .analysis import CountOpsLongestPath
 from .analysis import NumTensorFactors
 from .analysis import DAGLongestPath
 
+# synthesis
+from .synthesis import UnitarySynthesis
+
 # circuit scheduling
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import DelayInDt
 
 # dynamical decoupling
 from .dynamical_decoupling import UDDPass
