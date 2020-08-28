@@ -29,7 +29,7 @@ class TestCPMG(QiskitTestCase):
         self.backend = FakeAlmaden()
         self.backend_prop = self.backend.properties()
         self.gate_length = self.backend_prop._gates['u3'][(0,)]['gate_length'][0]
-        self.tau_step = 4.5e-7 - 2 * self.gate_length
+        self.tau_step_total = 4.5e-7 - 2 * self.gate_length
 
     def test_cpmg_simple(self):
         """Test that the pass replaces large enough delay blocks with CPMG DD sequences.
@@ -45,11 +45,11 @@ class TestCPMG(QiskitTestCase):
         
         expected = QuantumCircuit(1)
         expected.h(0)
-        expected.delay(self.tau_step / 4, 0, unit='s')
+        expected.delay(self.tau_step_total / 4, 0, unit='s')
         expected.u3(pi, pi/2, pi/2, 0)
-        expected.delay(self.tau_step / 2, 0, unit='s')
+        expected.delay(self.tau_step_total / 2, 0, unit='s')
         expected.u3(pi, pi/2, pi/2, 0)
-        expected.delay(self.tau_step / 4, 0, unit='s')
+        expected.delay(self.tau_step_total / 4, 0, unit='s')
         expected.h(0)
 
         self.assertEqual(actual, expected)
@@ -72,11 +72,11 @@ class TestCPMG(QiskitTestCase):
         expected.h(0)
         expected.delay(leftover_delay, 0, unit='s')
         for _ in range(3):
-            expected.delay(self.tau_step / 4, 0, unit='s')
+            expected.delay(self.tau_step_total / 4, 0, unit='s')
             expected.u3(pi, pi/2, pi/2, 0)
-            expected.delay(self.tau_step / 2, 0, unit='s')
+            expected.delay(self.tau_step_total / 2, 0, unit='s')
             expected.u3(pi, pi/2, pi/2, 0)
-            expected.delay(self.tau_step / 4, 0, unit='s')
+            expected.delay(self.tau_step_total / 4, 0, unit='s')
         expected.delay(leftover_delay, 0, unit='s')
         expected.h(0)
 
@@ -99,11 +99,11 @@ class TestCPMG(QiskitTestCase):
         expected = QuantumCircuit(1)
         expected.delay(5e-7, unit='s')
         expected.h(0)
-        expected.delay(self.tau_step / 4, 0, unit='s')
+        expected.delay(self.tau_step_total / 4, 0, unit='s')
         expected.u3(pi, pi/2, pi/2, 0)
-        expected.delay(self.tau_step / 2, 0, unit='s')
+        expected.delay(self.tau_step_total / 2, 0, unit='s')
         expected.u3(pi, pi/2, pi/2, 0)
-        expected.delay(self.tau_step / 4, 0, unit='s')
+        expected.delay(self.tau_step_total / 4, 0, unit='s')
         expected.h(0)
 
         self.assertEqual(actual, expected)

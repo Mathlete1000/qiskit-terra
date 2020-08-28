@@ -98,7 +98,8 @@ class CPMGPass(TransformationPass):
 
                 if self.tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
                     #If a cycle of CPMG can't fit or there isn't at least 1 other operation before.
-                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
+                    new_dag.apply_operation_back(Delay(delay_duration, unit=node.op.unit),
+                                                       qargs=node.qargs)
 
                 else:
                     count = int(delay_duration // self.tau_c)
