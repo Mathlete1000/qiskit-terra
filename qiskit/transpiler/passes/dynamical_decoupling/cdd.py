@@ -34,22 +34,20 @@ class CDDPass(TransformationPass):
     scheduled circuit where large enough Delay operations originally exist.
     """
 
-    def __init__(self, N, backend_properties, dt_in_sec, tau_step=10e-9):
+    def __init__(self, N, backend_properties, tau_step=10e-9):
         """CDDPass initializer.
         Args:
             N (int): Order of the CDD sequence to implement.
             backend_properties (BackendProperties): Properties returned by a
                 backend, including information on gate errors, readout errors,
                 qubit coherence times, etc.
-            dt_in_sec (float): Sample duration [sec] used for the conversion.
-            tau_step (float): Delay time between pulses in the DD sequence. Default
-                is 10 ns.
+            tau_step (float): Delay time between pulses in the DD sequence in seconds. 
+                Default is 10 ns.
         """
         super().__init__()
         self.N = N
         self.backend_properties = backend_properties
-        self.dt = dt_in_sec
-        self.tau_step_dt = int(tau_step / self.dt)
+        self.tau_step = tau_step
         self.tau_cs = {}
 
         def build_sequence(N: int):
@@ -94,8 +92,7 @@ class CDDPass(TransformationPass):
                 gate_duration += \
                     self.backend_properties._gates[node.op.name][(qubit,)]['gate_length'][0]
 
-            self.tau_cs[qubit] = len(self.cdd_sequence) // 2 * \
-                                 (round(2 * self.tau_step_dt + gate_duration / self.dt))
+            self.tau_cs[qubit] = len(self.cdd_sequence) * (self.tau_step + gate_duration / 2)
 
 
     def run(self, dag):
@@ -108,7 +105,6 @@ class CDDPass(TransformationPass):
         new_dag = DAGCircuit()
 
         new_dag.name = dag.name
-        new_dag.instruction_durations = dag.instruction_durations
 
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
@@ -126,22 +122,22 @@ class CDDPass(TransformationPass):
 
                 if tau_c > delay_duration or len(dag.ancestors(node)) <= 1:
                     # If a cycle of CDD can't fit or there isn't at least 1 other operation before.
-                    new_dag.apply_operation_back(Delay(delay_duration), qargs=node.qargs)
+                    new_dag.apply_operation_back(Delay(delay_duration, unit=node.op.unit),
+                                                       qargs=node.qargs)
 
                 else:
-                    count = delay_duration // tau_c
-                    parity = 1 if (delay_duration - count * tau_c + self.tau_step_dt) % 2 \
-                               else 0
-                    new_delay = (delay_duration - count * tau_c + self.tau_step_dt) // 2
+                    count = int(delay_duration // tau_c)
+                    new_delay = (delay_duration - count * tau_c + self.tau_step) / 2
 
-                    new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+                    if new_delay != 0:
+                        new_dag.apply_operation_back(Delay(new_delay, unit='s'), qargs=node.qargs)
 
                     first = True
 
                     for _ in range(count):
                         for gate in self.cdd_sequence:
                             if not first:
-                                new_dag.apply_operation_back(Delay(self.tau_step_dt), 
+                                new_dag.apply_operation_back(Delay(self.tau_step, unit='s'), 
                                                                    qargs=node.qargs)
                             first = False
                             if isinstance(gate, XGate):
@@ -151,6 +147,7 @@ class CDDPass(TransformationPass):
                             for basis_node in self.ygate_unroll.topological_op_nodes():
                                 new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
 
-                    new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+                    if new_delay != 0:
+                        new_dag.apply_operation_back(Delay(new_delay, unit='s'), qargs=node.qargs)
 
         return new_dag

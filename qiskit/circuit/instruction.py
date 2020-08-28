@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017.
@@ -51,7 +49,7 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params):
+    def __init__(self, name, num_qubits, num_clbits, params, duration=None):
         """Create a new instruction.
 
         Args:
@@ -60,6 +58,7 @@ class Instruction:
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
+            duration (float): instruction's duration in seconds.
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -82,6 +81,7 @@ class Instruction:
         # empty definition means opaque or fundamental instruction
         self._definition = None
         self.params = params
+        self._duration = duration
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -160,8 +160,8 @@ class Instruction:
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
             else:
-                raise CircuitError("invalid param type {0} in instruction "
-                                   "{1}".format(type(single_param), self.name))
+                raise CircuitError("invalid param type {} in instruction "
+                                   "{}".format(type(single_param), self.name))
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
@@ -200,6 +200,16 @@ class Instruction:
         # pylint: disable=cyclic-import
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         sel.add_equivalence(self, decomposition)
+
+    @property
+    def duration(self):
+        """Get the duration."""
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration):
+        """Set the duration."""
+        self._duration = duration
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
@@ -246,9 +256,9 @@ class Instruction:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + '_reverse')
-        reverse_inst.definition.data = []
-        for inst, qargs, cargs in reversed(self._definition):
-            reverse_inst._definition.data.append((inst.reverse_ops(), qargs, cargs))
+        reverse_inst.definition._data = [(inst.reverse_ops(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return reverse_inst
 
     def inverse(self):
@@ -270,9 +280,9 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
         inverse_gate = self.copy(name=self.name + '_dg')
-        inverse_gate._definition.data = []
-        for inst, qargs, cargs in reversed(self._definition.data):
-            inverse_gate._definition.data.append((inst.inverse(), qargs, cargs))
+        inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
+                                         for inst, qargs, cargs in reversed(self._definition)]
+
         return inverse_gate
 
     def c_if(self, classical, val):
@@ -385,6 +395,6 @@ class Instruction:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc.data = [(self, qargs[:], cargs[:])] * n
+            qc._data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction

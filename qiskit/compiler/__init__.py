@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -28,6 +26,7 @@ Circuit and Pulse Compilation Functions
    assemble
    schedule
    transpile
+   sequence
 
 """
 

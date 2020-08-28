@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -39,7 +37,7 @@ class Play(Instruction):
 
         Args:
             pulse: A pulse waveform description, such as
-                   :py:class:`~qiskit.pulse.library.SamplePulse`.
+                   :py:class:`~qiskit.pulse.library.Waveform`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
 
