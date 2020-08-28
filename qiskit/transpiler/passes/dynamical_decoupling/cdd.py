@@ -134,7 +134,8 @@ class CDDPass(TransformationPass):
                                else 0
                     new_delay = (delay_duration - count * tau_c + self.tau_step_dt) // 2
 
-                    new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
+                    if new_delay != 0:
+                        new_dag.apply_operation_back(Delay(new_delay), qargs=node.qargs)
 
                     first = True
 
@@ -151,6 +152,7 @@ class CDDPass(TransformationPass):
                             for basis_node in self.ygate_unroll.topological_op_nodes():
                                 new_dag.apply_operation_back(basis_node.op, qargs=node.qargs)
 
-                    new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
+                    if new_delay != 0 or parity != 0:
+                        new_dag.apply_operation_back(Delay(new_delay + parity), qargs=node.qargs)
 
         return new_dag
